@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaunchMind Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <header class="glass">
+            <div class="brand">
+                <span class="icon">🚀</span>
+                <h1>LaunchMind</h1>
+            </div>
+            <div class="control-group">
+                <input type="text" id="idea-input" placeholder="Enter your startup idea..." value="An AI-powered startup generator that automates software engineering and marketing." />
+                <button id="start-btn" class="glow-on-hover">Launch Startup</button>
+            </div>
+        </header>
+
+        <main class="dashboard">
+            <aside class="activity-feed glass">
+                <div class="feed-header">
+                    <h2>Live Activity</h2>
+                    <span class="status-indicator"></span>
+                </div>
+                <div id="messages-container"></div>
+            </aside>
+
+            <section class="workspace glass">
+                <div class="tabs">
+                    <button class="tab-btn active" data-target="preview">HTML Preview</button>
+                    <button class="tab-btn" data-target="github">GitHub actions & Code</button>
+                    <button class="tab-btn" data-target="marketing">Marketing</button>
+                    <button class="tab-btn" data-target="qa">QA Report</button>
+                </div>
+
+                <div class="tab-content active" id="preview">
+                    <div class="iframe-wrapper">
+                        <iframe id="html-preview-frame"></iframe>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="github">
+                    <div class="card">
+                        <h3>Repository Status</h3>
+                        <p id="github-status" class="empty-state">Awaiting code generation...</p>
+                        <div class="links" id="github-links"></div>
+                        <div id="product-spec" style="margin-top:20px; font-size:14px; color:#aaa;"></div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="marketing">
+                    <div class="card">
+                        <h3>Social Media Campaigns</h3>
+                        <div id="marketing-posts" class="empty-state">Awaiting marketing strategy...</div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="qa">
+                    <div class="card">
+                        <h3>Validation Report</h3>
+                        <div id="qa-report-content" class="empty-state">Awaiting QA validation...</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

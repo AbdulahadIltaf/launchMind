@@ -1,0 +1,84 @@
+# Phase 1: LaunchMind MAS Skeleton Walkthrough
+
+I've completed designing and scaffolding the Skeleton Architecture for the multi-agent system. The system runs exactly as requested in your assignment requirements for Phase 1. 
+
+## Features Implemented
+- **Full Architecture Structure**: Replicated the `launchmind/` folder hierarchy.
+- **`RedisBus` & `state.py`**: Robust state management using `operator.add` to keep the full message history tracking alive. The `bus.py` gracefully catches connection errors, ensuring you can still run if Redis isn't up, but will log to it when it is.
+- **`StateGraph` Orchestration**: Parallel execution is enabled for the `Engineer` and `Marketing` agents correctly fanning-in to the `QA` agent.
+- **Terminal Visualization**: Used `rich.console.Console` correctly colored for immediate terminal impact.
+- **Hardcoded "Fail" Loop Simulation**: The QA agent automatically "Fails" on the first pass and "Passes" on the second pass to show the CEO reasoning path dynamically during the simulation phase.
+
+---
+
+## 🏃 Running the Demo
+
+> [!TIP]
+> **Prepare the Workspace**
+> Open your terminal in VS Code to ensure you have a split-terminal view ready for your demo recording.
+
+### 1. Requirements & Setup
+
+In your primary terminal window, run the following commands on Windows:
+
+```cmd
+cd launchmind
+python -m venv venv
+venv\Scripts\activate
+pip install langgraph langchain-google-genai langchain-groq redis rich
+```
+*(Make sure you've also populated your `launchmind/.env` keys, even though they aren't strictly hit in the skeleton phase, it's good practice).*
+
+### 2. Start the Message Bus
+
+Split your terminal. In the second pane, launch the Redis container and drop into the monitor prompt (as per Option C requirements):
+
+```cmd
+cd launchmind
+docker-compose up -d
+redis-cli MONITOR
+```
+*Note: If `redis-cli` isn't installed locally on Windows, you can access it via Docker: `docker exec -it launchmind-redis-1 redis-cli MONITOR`*
+
+### 3. The "Moment of Truth"
+
+In your primary terminal window, execute the MAS:
+
+```cmd
+python main.py
+```
+
+### What You Will See 🍿
+
+1. **Terminal 1 (`main.py`)**: You will see a visually rich track list of agents processing. 
+    - The **CEO** will decompose the idea.
+    - **Product** will assign work.
+    - **Engineer** and **Marketing** will execute.
+    - **QA Validator** will deliberately flag a "Failure" (as requested for your demo).
+    - **CEO** iterates again via the Graph's conditional edge and pushes the revision back to **Product**.
+    - The sequence runs a second time seamlessly and completes successfully!
+
+2. **Terminal 2 (Redis Monitor)**: You'll see real-time `PUBLISH agent_bus` logs flying by, proving without a doubt your agents are "talking" over an enterprise message broker!
+
+> [!IMPORTANT]
+> Because you're using LangGraph Parallel routing, you'll notice in your code `graph.py` that both `Engineer` and `Marketing` correctly flow to `QA_node` without deadlocking! This is the exact pattern needed to satisfy the advanced agentic flow requirements.
+
+Let me know if you would like to move on to Phase 2 (Platform Integration), where we will swap the mockup dictionaries with the Langchain `requests` tools for Github and SendGrid!
+
+
+
+
+cd launchmind
+python -m venv venv
+venv\Scripts\activate
+pip install langgraph langchain-google-genai langchain-groq redis rich
+
+
+cd launchmind
+docker-compose up -d
+docker exec -it launchmind-redis-1 redis-cli MONITOR
+
+
+python main.py
+uvicorn server:app --reload
+
