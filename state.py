@@ -17,3 +17,4 @@ class StartupState(TypedDict):
     marketing_results: Optional[dict]
     qa_report: Optional[dict]
     review_approved: bool
+    demo_mode: bool

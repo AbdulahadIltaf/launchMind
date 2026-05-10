@@ -1,45 +1,19 @@
 {
   "version": 2,
-  "framework": "other",
-  "buildCommand": "pip install -r requirements.txt",
-  "outputDirectory": ".",
-  "env": {
-    "PYTHONUNBUFFERED": "1",
-    "PYTHON_VERSION": "3.11"
-  },
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.11",
-      "memory": 3008,
-      "maxDuration": 300,
-      "includeFiles": "**"
+  "builds": [
+    {
+      "src": "server.py",
+      "use": "@vercel/python"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/static/$1",
-      "methods": ["GET", "HEAD"]
-    },
-    {
-      "src": "/api/ws",
-      "dest": "/api/index.py",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.py",
-      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "methods": ["GET"]
+      "dest": "server.py"
     }
-  ],
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  }
+  ]
 }

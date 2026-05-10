@@ -90,6 +90,7 @@ manager = ConnectionManager()
 
 class StartRequest(BaseModel):
     idea: str = "An AI-powered startup generator that automates software engineering and marketing."
+    demo_mode: bool = False
 
 @app.get("/")
 async def get_index():
@@ -123,7 +124,7 @@ async def websocket_endpoint(websocket: WebSocket):
         except:
             pass
 
-async def run_workflow(idea: str):
+async def run_workflow(idea: str, demo_mode: bool = False):
     """Run the LLM workflow and broadcast updates"""
     workflow_state["is_running"] = True
     workflow_state["current_stage"] = "starting"
@@ -144,7 +145,8 @@ async def run_workflow(idea: str):
             "github_results": None,
             "marketing_results": None,
             "qa_report": None,
-            "review_approved": False
+            "review_approved": False,
+            "demo_mode": demo_mode
         }
         
         # Track which agents have completed
@@ -214,8 +216,10 @@ async def start_workflow(req: StartRequest):
     if workflow_state["is_running"]:
         return {"status": "error", "message": "Workflow already running"}
     
+    demo_mode = req.demo_mode
+    
     # Start workflow in background
-    asyncio.create_task(run_workflow(idea))
+    asyncio.create_task(run_workflow(idea, demo_mode))
     
     return {
         "status": "started",

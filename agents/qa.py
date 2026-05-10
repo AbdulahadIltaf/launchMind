@@ -23,16 +23,18 @@ def qa_node(state: StartupState) -> dict:
     eng_results = state.get("github_results", {})
     mkt_results = state.get("marketing_results", {})
     
-    # Read forced flag from .env
-    force_fail = os.environ.get("FORCE_FAIL_FIRST_RUN", "False").lower() == "true"
+    # Read demo_mode from state
+    demo_mode = state.get("demo_mode", False)
     
-    if force_fail and len(qa_messages) == 0:
-        # Prevent infinite loops during this run
-        os.environ["FORCE_FAIL_FIRST_RUN"] = "False"
-        
-        status = "fail"
-        comments = ["Missing dark mode toggle.", "Marketing tagline relies on heavy cliches."]
-        action = f"Reviewing outputs. Found issues (Forced Flag)! Failing QA: {comments}"
+    if demo_mode:
+        if len(qa_messages) == 0:
+            status = "fail"
+            comments = ["Revision required: Please add Dark Mode Toggle feature and more imagery."]
+            action = f"Demo Mode: Forced initial failure. Failing QA: {comments}"
+        else:
+            status = "pass"
+            comments = ["Revision accepted. All features implemented correctly."]
+            action = "Demo Mode: Forced pass after initial failure."
     else:
         prompt = f"""
         You are a strict QA Reviewer for a startup. 

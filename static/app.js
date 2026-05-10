@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ===== CONFIGURATION =====
+    const BACKEND_URL = window.location.origin;  // Change this if backend is on different domain
+    // For deployed Vercel + separate backend, use: const BACKEND_URL = 'https://your-backend.railway.app';
+    
     // ===== STATE MANAGEMENT =====
     const state = {
         isRunning: false,
@@ -14,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText: document.getElementById('status-text'),
         statusDot: document.querySelector('.status-dot'),
         connectionIndicator: document.querySelector('.connection-indicator'),
+        demoModeToggle: document.getElementById('demo-mode-toggle'),
         
         // Tab controls
         tabBtns: document.querySelectorAll('.tab-btn'),
@@ -47,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function connectWebSocket() {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
+        const backendHost = BACKEND_URL.replace('https://', '').replace('http://', '');
+        const wsUrl = `${wsProtocol}//${backendHost}/ws`;
         
         ws = new WebSocket(wsUrl);
         
@@ -299,10 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
         addSystemMessage(`🚀 Initializing startup creation for: "${idea}"`, 'info');
         
         try {
-            const resp = await fetch(`/api/start`, {
+            const demo_mode = elements.demoModeToggle.checked;
+            
+            const resp = await fetch(`${BACKEND_URL}/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idea })
+                body: JSON.stringify({ idea, demo_mode })
             });
             
             if (!resp.ok) {
