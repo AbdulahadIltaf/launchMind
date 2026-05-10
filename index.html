@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaunchMind - AI Startup Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="glass">
+            <div class="header-left">
+                <div class="brand">
+                    <span class="icon">🚀</span>
+                    <div>
+                        <h1>LaunchMind</h1>
+                        <p class="tagline">AI-Powered Startup Generator</p>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Ready</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard">
+            <!-- Left Sidebar - Activity Feed -->
+            <aside class="sidebar">
+                <div class="sidebar-panel glass">
+                    <div class="panel-header">
+                        <h2>📊 Live Activity</h2>
+                        <div class="connection-indicator"></div>
+                    </div>
+                    <div id="messages-container" class="messages-feed"></div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="sidebar-panel glass control-panel">
+                    <h3>🎯 Launch Configuration</h3>
+                    <textarea id="idea-input" class="idea-input" placeholder="Enter your startup idea...">An AI-powered startup generator that automates software engineering and marketing.</textarea>
+                    <button id="start-btn" class="btn-primary">
+                        <span>Launch Startup</span>
+                        <span class="btn-icon">→</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Workspace -->
+            <section class="workspace">
+                <!-- Tabs Navigation -->
+                <div class="tabs-nav glass">
+                    <button class="tab-btn active" data-target="preview">
+                        <span class="tab-icon">🎨</span>
+                        <span>HTML Preview</span>
+                    </button>
+                    <button class="tab-btn" data-target="github">
+                        <span class="tab-icon">💻</span>
+                        <span>Code & GitHub</span>
+                    </button>
+                    <button class="tab-btn" data-target="marketing">
+                        <span class="tab-icon">📱</span>
+                        <span>Marketing</span>
+                    </button>
+                    <button class="tab-btn" data-target="qa">
+                        <span class="tab-icon">✅</span>
+                        <span>QA Report</span>
+                    </button>
+                    <button class="tab-btn" data-target="workflow">
+                        <span class="tab-icon">⚙️</span>
+                        <span>Workflow</span>
+                    </button>
+                </div>
+
+                <!-- Tab Content Areas -->
+                <div class="tabs-content">
+                    <!-- Preview Tab -->
+                    <div class="tab-content active" id="preview">
+                        <div class="preview-wrapper">
+                            <iframe id="html-preview-frame" class="preview-frame" sandbox="allow-same-origin allow-scripts"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- GitHub Tab -->
+                    <div class="tab-content" id="github">
+                        <div class="content-grid">
+                            <div class="card glass">
+                                <div class="card-header">
+                                    <h3>💻 Repository Status</h3>
+                                </div>
+                                <div class="card-body">
+                                    <p id="github-status" class="empty-state">⏳ Awaiting code generation...</p>
+                                    <div class="links-container" id="github-links"></div>
+                                </div>
+                            </div>
+                            <div class="card glass">
+                                <div class="card-header">
+                                    <h3>📋 Product Specification</h3>
+                                </div>
+                                <div class="card-body">
+                                    <pre id="product-spec" class="spec-content">Loading...</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Marketing Tab -->
+                    <div class="tab-content" id="marketing">
+                        <div class="content-grid">
+                            <div class="card glass">
+                                <div class="card-header">
+                                    <h3>📱 Social Media Campaigns</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="marketing-posts" class="empty-state">⏳ Awaiting marketing strategy...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QA Tab -->
+                    <div class="tab-content" id="qa">
+                        <div class="content-grid">
+                            <div class="card glass">
+                                <div class="card-header">
+                                    <h3>✅ QA Validation Report</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="qa-report-content" class="empty-state">⏳ Awaiting QA validation...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workflow Tab -->
+                    <div class="tab-content" id="workflow">
+                        <div class="content-grid">
+                            <div class="card glass">
+                                <div class="card-header">
+                                    <h3>⚙️ Workflow Status</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div id="workflow-status" class="workflow-timeline">
+                                        <div class="workflow-item">
+                                            <div class="workflow-dot"></div>
+                                            <div class="workflow-text">
+                                                <strong>CEO Planning</strong>
+                                                <p>Initializing startup strategy</p>
+                                            </div>
+                                        </div>
+                                        <div class="workflow-item">
+                                            <div class="workflow-dot"></div>
+                                            <div class="workflow-text">
+                                                <strong>Product Design</strong>
+                                                <p>Creating product specification</p>
+                                            </div>
+                                        </div>
+                                        <div class="workflow-item">
+                                            <div class="workflow-dot"></div>
+                                            <div class="workflow-text">
+                                                <strong>Engineering</strong>
+                                                <p>Building landing page & code</p>
+                                            </div>
+                                        </div>
+                                        <div class="workflow-item">
+                                            <div class="workflow-dot"></div>
+                                            <div class="workflow-text">
+                                                <strong>Marketing</strong>
+                                                <p>Creating social media campaigns</p>
+                                            </div>
+                                        </div>
+                                        <div class="workflow-item">
+                                            <div class="workflow-dot"></div>
+                                            <div class="workflow-text">
+                                                <strong>QA & Review</strong>
+                                                <p>Validating all deliverables</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

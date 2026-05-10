@@ -46,7 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxReconnectAttempts = 5;
     
     function connectWebSocket() {
-        ws = new WebSocket(`ws://${location.host}/ws`);
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/ws`;
+        
+        ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
             console.log('Connected to server');
@@ -296,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addSystemMessage(`🚀 Initializing startup creation for: "${idea}"`, 'info');
         
         try {
-            const resp = await fetch('/start', {
+            const resp = await fetch(`/api/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idea })

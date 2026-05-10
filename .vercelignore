@@ -1,0 +1,18 @@
+# Vercel ignore file - files not needed for deployment
+.git
+.gitignore
+.env
+.env.local
+*.md
+venv/
+env/
+node_modules/
+.python-version
+.DS_Store
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+docker-compose.yml
+walkthrough_1/
+*.log
