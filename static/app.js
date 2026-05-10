@@ -1,135 +1,299 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Tab switching
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
+    // ===== STATE MANAGEMENT =====
+    const state = {
+        isRunning: false,
+        completedStages: new Set(),
+        currentStage: null
+    };
 
-    tabBtns.forEach(btn => {
+    // ===== DOM ELEMENTS =====
+    const elements = {
+        startBtn: document.getElementById('start-btn'),
+        ideaInput: document.getElementById('idea-input'),
+        messagesContainer: document.getElementById('messages-container'),
+        statusText: document.getElementById('status-text'),
+        statusDot: document.querySelector('.status-dot'),
+        connectionIndicator: document.querySelector('.connection-indicator'),
+        
+        // Tab controls
+        tabBtns: document.querySelectorAll('.tab-btn'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        
+        // Content areas
+        previewFrame: document.getElementById('html-preview-frame'),
+        githubStatus: document.getElementById('github-status'),
+        githubLinks: document.getElementById('github-links'),
+        productSpec: document.getElementById('product-spec'),
+        marketingPosts: document.getElementById('marketing-posts'),
+        qaReport: document.getElementById('qa-report-content'),
+        workflowStatus: document.getElementById('workflow-status')
+    };
+
+    // ===== TAB SWITCHING =====
+    elements.tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
+            elements.tabBtns.forEach(b => b.classList.remove('active'));
+            elements.tabContents.forEach(c => c.classList.remove('active'));
             
             btn.classList.add('active');
             document.getElementById(btn.dataset.target).classList.add('active');
         });
     });
 
-    // WebSocket logic
-    const ws = new WebSocket(`ws://${location.host}/ws`);
-    const statusIndicator = document.querySelector('.status-indicator');
+    // ===== WEBSOCKET CONNECTION =====
+    let ws;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
     
-    ws.onopen = () => {
-        statusIndicator.classList.add('active');
-    };
-    ws.onclose = () => {
-        statusIndicator.classList.remove('active');
-    };
+    function connectWebSocket() {
+        ws = new WebSocket(`ws://${location.host}/ws`);
+        
+        ws.onopen = () => {
+            console.log('Connected to server');
+            reconnectAttempts = 0;
+            updateConnectionStatus(true);
+            addSystemMessage('Connected to LaunchMind server', 'success');
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            updateConnectionStatus(false);
+        };
+        
+        ws.onclose = () => {
+            console.log('Disconnected from server');
+            updateConnectionStatus(false);
+            
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+            }
+        };
+        
+        ws.onmessage = handleWebSocketMessage;
+    }
+    
+    function updateConnectionStatus(connected) {
+        elements.statusDot.classList.toggle('active', connected);
+        elements.connectionIndicator.classList.toggle('connected', connected);
+        elements.statusText.textContent = connected ? 'Connected' : 'Offline';
+    }
+    
+    connectWebSocket();
 
-    const messagesContainer = document.getElementById('messages-container');
-
-    const addMessage = (from, to, text, type = 'info') => {
+    // ===== MESSAGE HANDLING =====
+    function addMessage(from, to, text, type = 'info') {
         const div = document.createElement('div');
         div.className = 'message-card';
-        const time = new Date().toLocaleTimeString();
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
         let headerHtml = `<div class="msg-header">
             <span class="msg-agent">${from} → ${to}</span>
             <span class="msg-time">${time}</span>
         </div>`;
         
-        // rudimentary sanitization
         const safeText = document.createTextNode(text).textContent;
         div.innerHTML = `${headerHtml}<div>${safeText}</div>`;
-        messagesContainer.appendChild(div);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    };
+        elements.messagesContainer.appendChild(div);
+        elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
+    }
+    
+    function addSystemMessage(text, type = 'info') {
+        addMessage('System', 'LaunchMind', text, type);
+    }
 
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'graph_event') {
-            const stateUpdate = msg.data;
-            for (const [nodeName, stateData] of Object.entries(stateUpdate)) {
-                
-                // Add recent messages to the feed
-                if (stateData.messages && Array.isArray(stateData.messages)) {
-                    stateData.messages.forEach(m => {
-                        let text = m.message_type === 'task' ? 'Assigned a task' : 'Returned result/confirmation';
-                        if (m.payload && typeof m.payload === 'object') {
-                            if (m.payload.directive) text = m.payload.directive;
-                            else text = "Generated artifacts. Please check the dashboard tabs.";
-                        } else if (typeof m.payload === 'string') {
-                            text = m.payload;
-                        }
-                        // Only add the last message in the update to not flood if state dumps history
-                        // Actually langgraph streams partial updates, so `stateData.messages` only contains new messages pushed by this node!
-                        addMessage(m.from_agent, m.to_agent, text);
-                    });
-                }
-                
-                if (stateData.product_spec) {
-                    const specStr = typeof stateData.product_spec === 'string' ? stateData.product_spec : JSON.stringify(stateData.product_spec, null, 2);
-                    document.getElementById('product-spec').innerText = "Product Spec Loaded.";
-                }
-
-                if (stateData.github_results) {
-                    if (stateData.github_results.html_code) {
-                        document.getElementById('html-preview-frame').srcdoc = stateData.github_results.html_code;
-                    }
-                    const ghStatus = document.getElementById('github-status');
-                    ghStatus.classList.remove('empty-state');
-                    ghStatus.innerText = `Status: ${stateData.github_results.status || 'Generated'}`;
-                    
-                    const links = document.getElementById('github-links');
-                    links.innerHTML = '';
-                    if (stateData.github_results.pr_url && stateData.github_results.pr_url !== 'https://github.com/mock') {
-                        links.innerHTML += `<a href="${stateData.github_results.pr_url}" target="_blank" class="link-btn">View Pull Request</a>`;
-                    }
-                    if (stateData.github_results.issue_url && stateData.github_results.issue_url !== 'https://github.com/mock') {
-                        links.innerHTML += `<a href="${stateData.github_results.issue_url}" target="_blank" class="link-btn">View GitHub Issue</a>`;
-                    }
-                }
-
-                if (stateData.marketing_results) {
-                    const marketingContainer = document.getElementById('marketing-posts');
-                    marketingContainer.classList.remove('empty-state');
-                    let html = '';
-                    if (stateData.marketing_results.twitter_post) {
-                        html += `<h4>Twitter Post</h4><pre>${stateData.marketing_results.twitter_post}</pre>`;
-                    }
-                    if (stateData.marketing_results.linkedin_post) {
-                        html += `<h4>LinkedIn Post</h4><pre>${stateData.marketing_results.linkedin_post}</pre>`;
-                    }
-                    marketingContainer.innerHTML = html || `<pre>${JSON.stringify(stateData.marketing_results, null, 2)}</pre>`;
-                }
-
-                if (stateData.qa_report) {
-                    const qaContainer = document.getElementById('qa-report-content');
-                    qaContainer.classList.remove('empty-state');
-                    qaContainer.innerHTML = `<pre>${JSON.stringify(stateData.qa_report, null, 2)}</pre>`;
-                }
+    function updateWorkflowTimeline(stage) {
+        const stages = ['CEO Planning', 'Product Design', 'Engineering', 'Marketing', 'QA & Review'];
+        const workflowItems = document.querySelectorAll('.workflow-item');
+        
+        workflowItems.forEach((item, index) => {
+            const dot = item.querySelector('.workflow-dot');
+            if (index < stages.indexOf(stage)) {
+                dot.style.background = 'var(--success)';
+                dot.style.borderColor = 'var(--success)';
+            } else if (stages[index] === stage) {
+                dot.style.background = 'var(--accent-primary)';
+                dot.style.borderColor = 'var(--accent-primary)';
             }
-        } else if (msg.type === 'graph_complete') {
-            addMessage('System', 'All', '🎉 Workflow completed successfully!');
-        } else if (msg.type === 'graph_error') {
-            addMessage('System', 'All', `Error: ${msg.data}`);
-        }
-    };
+        });
+    }
 
-    // Start button
-    document.getElementById('start-btn').addEventListener('click', async () => {
-        const idea = document.getElementById('idea-input').value;
-        messagesContainer.innerHTML = ''; 
+    function handleWebSocketMessage(event) {
+        try {
+            const msg = JSON.parse(event.data);
+            
+            if (msg.type === 'graph_event') {
+                const stateUpdate = msg.data;
+                
+                for (const [nodeName, stateData] of Object.entries(stateUpdate)) {
+                    // Handle messages from agents
+                    if (stateData.messages && Array.isArray(stateData.messages)) {
+                        stateData.messages.forEach(m => {
+                            let text = m.message_type === 'task' ? 'Assigned a task' : 'Processed result';
+                            
+                            if (m.payload && typeof m.payload === 'object') {
+                                if (m.payload.directive) {
+                                    text = m.payload.directive;
+                                } else {
+                                    text = '✓ Generated artifacts. Check the dashboard tabs.';
+                                }
+                            } else if (typeof m.payload === 'string' && m.payload.length > 0) {
+                                text = m.payload.substring(0, 100);
+                            }
+                            
+                            addMessage(m.from_agent || 'Agent', m.to_agent || 'Team', text);
+                        });
+                    }
+                    
+                    // Update workflow stage based on node
+                    if (['ceo_node', 'product_node', 'engineer_node', 'marketing_node', 'qa_node'].includes(nodeName)) {
+                        const stageMap = {
+                            'ceo_node': 'CEO Planning',
+                            'product_node': 'Product Design',
+                            'engineer_node': 'Engineering',
+                            'marketing_node': 'Marketing',
+                            'qa_node': 'QA & Review'
+                        };
+                        if (stageMap[nodeName]) {
+                            updateWorkflowTimeline(stageMap[nodeName]);
+                        }
+                    }
+                    
+                    // Handle product spec
+                    if (stateData.product_spec) {
+                        const specStr = typeof stateData.product_spec === 'string' 
+                            ? stateData.product_spec 
+                            : JSON.stringify(stateData.product_spec, null, 2);
+                        elements.productSpec.innerText = specStr;
+                    }
+                    
+                    // Handle GitHub results (engineer output)
+                    if (stateData.github_results) {
+                        if (stateData.github_results.html_code) {
+                            elements.previewFrame.srcdoc = stateData.github_results.html_code;
+                        }
+                        
+                        elements.githubStatus.classList.remove('empty-state');
+                        const status = stateData.github_results.status || 'Generated Successfully';
+                        elements.githubStatus.innerHTML = `<strong>✓ ${status}</strong>`;
+                        
+                        elements.githubLinks.innerHTML = '';
+                        if (stateData.github_results.pr_url && stateData.github_results.pr_url !== 'https://github.com/mock') {
+                            elements.githubLinks.innerHTML += `
+                                <a href="${stateData.github_results.pr_url}" target="_blank" class="link-btn">
+                                    📤 View Pull Request
+                                </a>
+                            `;
+                        }
+                        if (stateData.github_results.issue_url && stateData.github_results.issue_url !== 'https://github.com/mock') {
+                            elements.githubLinks.innerHTML += `
+                                <a href="${stateData.github_results.issue_url}" target="_blank" class="link-btn">
+                                    📋 View GitHub Issue
+                                </a>
+                            `;
+                        }
+                        
+                        state.completedStages.add('Engineering');
+                    }
+                    
+                    // Handle marketing results
+                    if (stateData.marketing_results) {
+                        elements.marketingPosts.classList.remove('empty-state');
+                        let html = '';
+                        
+                        if (stateData.marketing_results.twitter_post) {
+                            html += `<div style="margin-bottom:16px;">
+                                <h4 style="color:var(--accent-primary);margin-bottom:8px;">🐦 Twitter Post</h4>
+                                <pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:12px;">${escapeHtml(stateData.marketing_results.twitter_post)}</pre>
+                            </div>`;
+                        }
+                        if (stateData.marketing_results.linkedin_post) {
+                            html += `<div style="margin-bottom:16px;">
+                                <h4 style="color:var(--accent-primary);margin-bottom:8px;">💼 LinkedIn Post</h4>
+                                <pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:12px;">${escapeHtml(stateData.marketing_results.linkedin_post)}</pre>
+                            </div>`;
+                        }
+                        
+                        elements.marketingPosts.innerHTML = html || formatJSON(stateData.marketing_results);
+                        state.completedStages.add('Marketing');
+                    }
+                    
+                    // Handle QA report
+                    if (stateData.qa_report) {
+                        elements.qaReport.classList.remove('empty-state');
+                        elements.qaReport.innerHTML = formatJSON(stateData.qa_report);
+                        state.completedStages.add('QA');
+                    }
+                }
+            } else if (msg.type === 'graph_complete') {
+                addSystemMessage('🎉 Workflow completed successfully!', 'success');
+                state.isRunning = false;
+                updateButtonState();
+            } else if (msg.type === 'graph_error') {
+                addSystemMessage(`❌ Error: ${msg.data}`, 'error');
+                state.isRunning = false;
+                updateButtonState();
+            }
+        } catch (error) {
+            console.error('Error parsing message:', error);
+        }
+    }
+
+    // ===== UTILITY FUNCTIONS =====
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    function formatJSON(obj) {
+        const str = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+        return `<pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;">${escapeHtml(str)}</pre>`;
+    }
+
+    function resetUI() {
+        elements.previewFrame.srcdoc = '';
+        elements.githubStatus.innerHTML = '<p class="empty-state">⏳ Awaiting code generation...</p>';
+        elements.githubStatus.classList.add('empty-state');
+        elements.githubLinks.innerHTML = '';
+        elements.productSpec.innerText = 'Loading...';
+        elements.marketingPosts.innerHTML = '<p class="empty-state">⏳ Awaiting marketing strategy...</p>';
+        elements.marketingPosts.classList.add('empty-state');
+        elements.qaReport.innerHTML = '<p class="empty-state">⏳ Awaiting QA validation...</p>';
+        elements.qaReport.classList.add('empty-state');
+        elements.messagesContainer.innerHTML = '';
+        state.completedStages.clear();
+    }
+
+    function updateButtonState() {
+        elements.startBtn.disabled = state.isRunning;
+        elements.startBtn.style.opacity = state.isRunning ? '0.6' : '1';
+        elements.startBtn.style.cursor = state.isRunning ? 'not-allowed' : 'pointer';
+    }
+
+    // ===== START BUTTON HANDLER =====
+    elements.startBtn.addEventListener('click', async () => {
+        const idea = elements.ideaInput.value.trim();
         
-        document.getElementById('html-preview-frame').srcdoc = '';
-        document.getElementById('github-status').innerText = 'Generating...';
-        document.getElementById('github-status').classList.add('empty-state');
-        document.getElementById('github-links').innerHTML = '';
-        document.getElementById('product-spec').innerText = '';
-        document.getElementById('marketing-posts').innerHTML = 'Generating marketing strategy...';
-        document.getElementById('marketing-posts').classList.add('empty-state');
-        document.getElementById('qa-report-content').innerHTML = 'Waiting for generation...';
-        document.getElementById('qa-report-content').classList.add('empty-state');
+        if (!idea) {
+            addSystemMessage('⚠️ Please enter a startup idea!', 'warning');
+            return;
+        }
         
-        addMessage('System', 'LaunchMind', `🚀 Initializing startup creation for: "${idea}"`);
+        if (state.isRunning) {
+            return;
+        }
+        
+        state.isRunning = true;
+        updateButtonState();
+        resetUI();
+        
+        addSystemMessage(`🚀 Initializing startup creation for: "${idea}"`, 'info');
         
         try {
             const resp = await fetch('/start', {
@@ -137,11 +301,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idea })
             });
+            
             if (!resp.ok) {
-                addMessage('System', 'Error', 'Failed to start backend workflow.');
+                addSystemMessage('❌ Failed to start backend workflow.', 'error');
+                state.isRunning = false;
+                updateButtonState();
             }
         } catch (e) {
-            addMessage('System', 'Error', 'Failed to connect to backend: ' + e.message);
+            addSystemMessage(`❌ Failed to connect to backend: ${e.message}`, 'error');
+            state.isRunning = false;
+            updateButtonState();
         }
     });
+
+    // Initial UI setup
+    updateButtonState();
+    updateConnectionStatus(false);
 });
