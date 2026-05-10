@@ -7,13 +7,7 @@
     }
   ],
   "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "server.py"
-    }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "server.py" }
   ]
 }

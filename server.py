@@ -36,11 +36,12 @@ load_env()
 
 from graph import build_graph
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI(title="LaunchMind UI")
 
 # Ensure static directory exists
-os.makedirs("static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+os.makedirs(os.path.join(BASE_DIR, "static"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # Workflow state tracking
 workflow_state = {
@@ -95,7 +96,7 @@ class StartRequest(BaseModel):
 @app.get("/")
 async def get_index():
     """Serve the main dashboard"""
-    return FileResponse("static/index.html")
+    return FileResponse(os.path.join(BASE_DIR, "static", "index.html"))
 
 @app.get("/status")
 async def get_status():
